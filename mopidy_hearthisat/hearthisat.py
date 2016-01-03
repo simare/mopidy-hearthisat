@@ -21,7 +21,16 @@ class HearThisAtBackend(pykka.ThreadingActor, backend.Backend):
 		super(HearThisAtBackend, self).__init__()		
 		self.audio = audio
 		self.library = HearThisAtLibrary(backend=self)
-		self.hearthisat = Client()
+		self.playback = HearThisAtPlayback(audio=audio, backend=self)
+		self.remote = HearThisAtClient()
+
+class HearThisAtPlayback(backend.PlaybackProvider):
+	def translate_uri(self, uri):
+		logger.info('playback %s', uri)
+		playable = uri.split(':')[-1]
+		return 'https:' + playable
+
+
 
 class HearThisAtLibrary(backend.LibraryProvider):
 	root_directory = Ref.directory(uri='hearthisat:root:', name='HEARTHIS.AT')
@@ -31,11 +40,11 @@ class HearThisAtLibrary(backend.LibraryProvider):
 		logger.info('mopidy uri %s', uri)
 		schema, content_type, content_uri = uri.split(':')		
 		if content_type == 'root':
-			result = self.backend.hearthisat.categories()
+			result = self.backend.remote.categories()
 		if content_type == 'categories':	
-			result = self.backend.hearthisat.category_list(content_uri)
+			result = self.backend.remote.category_list(content_uri)
 		if content_type == 'track':
-			result = self.backend.hearthisat.track(content_uri)
+			result = self.backend.remote.track(content_uri)
 		
 		return result
 
@@ -43,25 +52,35 @@ class HearThisAtLibrary(backend.LibraryProvider):
 		result = []
 		logger.info('lookup %s', uri)
 		uri = uri.split(':')		
-		result.append(self.backend.hearthisat.track(uri[-2] +':'+ uri[-1]))
+		result.append(self.backend.remote.track(uri[-2] +':'+ uri[-1]))
 		return result
 
-class Client(object):
+	def search(self, query=None, uris=None, exact=False):
+		logger.info('search query %s uris %s', query, uris)
+		if not query.get('any'):
+			return None
+		tracks = self.backend.remote.search(query['any'][0])
+		return SearchResult(tracks=tracks)
+
+class HearThisAtClient(object):
 	def __init__(self):
 		self._base_uri = 'https://api-v2.hearthis.at/'
 		self._session = Session()        
         #self._session.headers['User-Agent'] = ' '.join(['Mopidy-HearThisAt/%s' % '0.1.0', 'Mopidy/%s' % '1.1.1', self._session.headers['User-Agent']])
         #self._session.mount(self._base_uri, HTTPAdapter(max_retries=3))
 
+	def search(self, query):
+		query = 'search?t=%s&page=1&count=20'%(query)
+		return self._request(query, self._track_wrapper)
+
 	def categories(self, uri='categories'):
 		return self._request(uri, self._directory_wrapper)
 
 	def category_list(self, category_uri):
-		result = []
-		page = 1
+		result = []		
 		uri = 'categories/'+category_uri+'?page=1&count=20'		
-		
 		result = self._request(uri, self._track_ref_wrapper)
+		# page = 1
 		# while res:
 		# 	page+=1
 		# 	uri = 'categories/'+category_uri+'?page=%s&count=20'%page			
@@ -73,14 +92,17 @@ class Client(object):
 	def track(self, uri):		
 		return self._request(uri, self._track_wrapper)
 
+	def _artist_wrapper(self, elem):
+		return Artist(uri=elem[u'uri'], name=elem[u'username'])
+
 	def _track_wrapper(self, elem):
 		logger.debug(elem)
 		return Track(
-			uri=elem[u'stream_url'], 
+			uri='hearthisat:' + elem[u'stream_url'], 
 			name=elem[u'title'], 
 			length=(int(elem[u'duration'])*1000),
 			genre=elem[u'genre'],
-			artists=[Artist(uri=elem[u'user'][u'uri'], name=elem[u'user'][u'username'])]
+			artists=[self._artist_wrapper(elem[u'user'])]
 			)
 
 	def _directory_wrapper(self, elem):
