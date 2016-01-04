@@ -14,7 +14,7 @@ def get_version(filename):
 setup(
     name='HearThisAt',
     version=get_version('mopidy_hearthisat/__init__.py'),
-    url='https://github.com/simare/hearthisat',
+    url='https://github.com/simare/mopidy-hearthisat',
     license='Apache License, Version 2.0',
     author='Ramon Zöllner',
     author_email='ramon@ramonzoellner.de',

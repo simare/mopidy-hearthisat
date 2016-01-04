@@ -3,20 +3,12 @@ from __future__ import unicode_literals
 import logging
 import os
 
-# TODO: Remove entirely if you don't register GStreamer elements below
-import pygst
-pygst.require('0.10')
-import gst
-import gobject
-
 from mopidy import config, ext
 
 
 __version__ = '0.1.0'
 
-# TODO: If you need to log, use loggers named after the current Python module
 logger = logging.getLogger(__name__)
-
 
 class Extension(ext.Extension):
 
@@ -29,16 +21,11 @@ class Extension(ext.Extension):
         return config.read(conf_file)
 
     def get_config_schema(self):
-        schema = super(Extension, self).get_config_schema()
-        # TODO: Comment in and edit, or remove entirely
-        #schema['username'] = config.String()
-        #schema['password'] = config.Secret()
+        schema = super(Extension, self).get_config_schema()        
+        schema['email'] = config.String(optional=True)
+        schema['password'] = config.Secret(optional=True)
         return schema
 
-    def setup(self, registry):
-        # You will typically only implement one of the following things
-        # in a single extension.
-
-        # TODO: Edit or remove entirely
+    def setup(self, registry):        
         from .hearthisat import HearThisAtBackend
         registry.add('backend', HearThisAtBackend)

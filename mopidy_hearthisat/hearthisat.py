@@ -14,20 +14,20 @@ from requests.adapters import HTTPAdapter
 
 logger = logging.getLogger(__name__)
 
-class HearThisAtBackend(pykka.ThreadingActor, backend.Backend):
-	uri_schemes = ['hearthisat']
+class HearThisAtBackend(pykka.ThreadingActor, backend.Backend):	
 	
 	def __init__(self, config, audio):
-		super(HearThisAtBackend, self).__init__()		
+		super(HearThisAtBackend, self).__init__()
+		self.config = config
 		self.audio = audio
 		self.library = HearThisAtLibrary(backend=self)
 		self.playback = HearThisAtPlayback(audio=audio, backend=self)
-		self.remote = HearThisAtClient()
+		self.remote = HearThisAtClient(config=self.config['hearthisat'])
+		self.uri_schemes = ['hearthisat']
 
 class HearThisAtPlayback(backend.PlaybackProvider):
-	def translate_uri(self, uri):
-		logger.info('playback %s', uri)
-		playable = uri.split(':')[-1]
+	def translate_uri(self, uri):		
+		playable = uri.split(':')[-1]		
 		return 'https:' + playable
 
 
@@ -63,11 +63,19 @@ class HearThisAtLibrary(backend.LibraryProvider):
 		return SearchResult(tracks=tracks)
 
 class HearThisAtClient(object):
-	def __init__(self):
+	def __init__(self, config):
+		logger.info(config)
 		self._base_uri = 'https://api-v2.hearthis.at/'
-		self._session = Session()        
+		self._session = Session()
+		self.login(config)
         #self._session.headers['User-Agent'] = ' '.join(['Mopidy-HearThisAt/%s' % '0.1.0', 'Mopidy/%s' % '1.1.1', self._session.headers['User-Agent']])
-        #self._session.mount(self._base_uri, HTTPAdapter(max_retries=3))
+        #self._session.mount(self._base_uri, HTTPAdapter(max_retries=3))        
+
+	def login(self, config):
+		if config['email'] and config['password']:
+			query = self._base_uri+'login/?email=%s&password=%s'%(config['email'], config['password'])
+			self.user = self._request(query)
+
 
 	def search(self, query):
 		query = 'search?t=%s&page=1&count=20'%(query)
@@ -111,7 +119,7 @@ class HearThisAtClient(object):
 	def _track_ref_wrapper(self, elem):
 		return Ref.track(uri='hearthisat:track:' + elem[u'uri'], name=elem[u'title'])
 
-	def _request(self, uri, result_wrapper):
+	def _request(self, uri, result_wrapper=(lambda x: x)):
 		if not uri:
 			uri = 'categories'
 		if self._base_uri not in uri:
