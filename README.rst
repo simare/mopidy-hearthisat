@@ -39,7 +39,9 @@ Before starting Mopidy, you must add configuration for
 HearThisAt to your Mopidy configuration file::
 
     [hearthisat]
-    # TODO: Add example of extension config
+    enabled = true
+    email = <email>
+    password = <password>
 
 
 Project resources
@@ -51,8 +53,11 @@ Project resources
 
 Changelog
 =========
-
-v0.1.0 (UNRELEASED)
+v0.1.1
+----------------------------------------
+- removed commented code
+- known issues: pagination of search results missing
+v0.1.0
 ----------------------------------------
 
 - Initial release.

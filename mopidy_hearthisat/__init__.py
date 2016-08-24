@@ -22,8 +22,8 @@ class Extension(ext.Extension):
 
     def get_config_schema(self):
         schema = super(Extension, self).get_config_schema()        
-        schema['email'] = config.String(optional=True)
-        schema['password'] = config.Secret(optional=True)
+        schema['email'] = config.String(optional=False)
+        schema['password'] = config.Secret(optional=False)
         return schema
 
     def setup(self, registry):        

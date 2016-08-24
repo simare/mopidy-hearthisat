@@ -12,7 +12,7 @@ def get_version(filename):
 
 
 setup(
-    name='HearThisAt',
+    name='Mopidy-HearThisAt',
     version=get_version('mopidy_hearthisat/__init__.py'),
     url='https://github.com/simare/mopidy-hearthisat',
     license='Apache License, Version 2.0',
