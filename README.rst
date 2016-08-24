@@ -55,6 +55,7 @@ Changelog
 =========
 v0.1.1
 ----------------------------------------
+- listing users playlists and such
 - removed commented code
 - known issues: pagination of search results missing
 v0.1.0
